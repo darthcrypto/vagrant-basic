@@ -1,0 +1,69 @@
+{
+  "variables": {
+    "iso": "CentOS-7-x86_64-Minimal-1810.iso",
+    "checksum": "38d5d51d9d100fd73df031ffd6bd8b1297ce24660dc8c13a3b8b4534a4bd291c"
+  },
+  "builders": [
+    {
+      "type": "virtualbox-iso",
+      "iso_url": "{{ user `iso` }}",
+      "iso_checksum": "{{ user `checksum` }}",
+      "iso_checksum_type": "sha256",
+      "vm_name": "developer",
+      "guest_os_type": "RedHat_64",
+      "ssh_username": "root",
+      "ssh_password": "password",
+      "ssh_port": 22,
+      "ssh_wait_timeout": "600s",
+      "vboxmanage": [
+        ["modifyvm", "{{.Name}}", "--memory", "2048"],
+        ["modifyvm", "{{.Name}}", "--cpus", "1"],
+        ["modifyvm", "{{.Name}}", "--audio", "none"],
+               ["hostonlyif", "create"],
+               ["modifyvm", "{{.Name}}", "--nic2", "hostonly"],
+        ["modifyvm", "{{.Name}}", "--cableconnected2", "on"],
+               ["modifyvm", "{{.Name}}", "--hostonlyadapter2", "VirtualBox Host-Only Ethernet Adapter"]
+      ],
+      "disk_size": "20480",
+      "http_directory": "http",
+      "boot_command": [
+        "<tab> text ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter><wait>"
+      ],
+          "guest_additions_path": "VBoxGuestAdditions_{{.Version}}.iso",
+      "shutdown_command": "/sbin/halt -p"
+    }
+  ],
+   "provisioners": [
+     {
+      "type": "file",
+      "source": "./installer.sh",
+          "destination": "/tmp/installer.sh"
+     },
+        {
+          "type": "shell",
+          "inline": "chmod +x /tmp/installer.sh"
+        },
+        {
+          "type": "shell",
+          "inline": "sed -i 's/\r$//' /tmp/installer.sh"
+        },
+        {
+          "type": "shell",
+          "inline": "bash /tmp/installer.sh"
+        },
+        {
+      "type": "file",
+      "source": "./authorized_keys",
+          "destination": "/home/vagrant/.ssh/authorized_keys"
+        },
+        {
+          "type": "shell",
+          "inline": "chmod 0600 /home/vagrant/.ssh/authorized_keys"
+        },
+        {
+          "type": "shell",
+          "inline": "chown -R vagrant:vagrant /home/vagrant/.ssh "
+        }
+   ], 
+   "post-processors": ["vagrant"]      
+}
